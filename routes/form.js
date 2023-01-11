@@ -14,8 +14,6 @@ router.get('/', (req, res) => {
 
 
 router.post('/', async (req, res) => {
-    console.log('/post:', req.body);
-
     const ret = await newShop(req.body);
 
     res.json({ success: true, body: req.body, ret: ret });
