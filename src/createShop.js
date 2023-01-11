@@ -8,6 +8,7 @@ const pool = mysql.createPool({
   password: "root",
   database: "madebyme",
 });
+
 const promisePool = pool.promise();
 
 async function newShop(data) {
@@ -26,30 +27,56 @@ async function newShop(data) {
 }
 
 async function saveUser(data) {
-  const sql = `INSERT INTO user (mail) VALUES ('${data.mail}');`;
+  const sql = `INSERT INTO users (mail) VALUES ('${data.mail}');`;
 
   try {
     const [rows, _] = await promisePool.query(sql);
 
     return rows.insertId;
   } catch (err) {
-    console.log("saveUser - err: ", err);
-    return null;
+    let id = null;
+    if (err.errno === 1062){
+      id = await getUserIdByMail(data.mail);
+    } else {
+      console.log("saveUser - err: ", err);
+    }
+    return id;
   }
 }
+
+const getUserIdByMail = async (mail, promisePool) => {
+  let id = null;
+  try {
+      const [rows] = await promisePool.execute(
+          `SELECT id FROM users WHERE mail = ?`,
+          [mail]
+      );
+      if (rows.length === 0) {
+          return null;
+      } else {
+          id = rows[0].id;
+          console.log("valeur de l'id l.48 : ", id);
+          return id;
+      }
+  } catch (error) {
+      console.error("getUserIdByMail - err : ",error);
+  }
+};
 
 // recover: [ 'delivery', 'collect' ]
 //TODO: Penser a modifier dans le front le pickup par le mot collect;
 // payment: [ 'card', 'cash' ],
 //TODO: Penser a modifier dans le front le card par le mot cb;
 
-async function saveShop(data, id_user) {
-  console.log("Valeur de data.recover l.47 : ", data.recover);
-  console.log("Valeur de data.recover.length l.48 : ", data.recover.length);
-  let order = data.recover.length === 2 ? "both" : data.recover[0];
-  console.log("Valeur const order l.50 : ", order);
-  let payment = data.payment.length === 2 ? "both" : data.payment[0];
-  let slug = saveShopWithUniqSlug(data, id_user, order, payment);
+//TODO: Est ce qu'on supprime "saveShop" et on remplace le nom de la func "saveShopWithUniqSlug" par "saveShop"?git checkout pierre
+
+// async function saveShop(data, id_user) {
+//   console.log("Valeur de data.recover l.47 : ", data.recover);
+//   console.log("Valeur de data.recover.length l.48 : ", data.recover.length);
+//   let order = data.recover.length === 2 ? "both" : data.recover[0];
+//   console.log("Valeur const order l.50 : ", order);
+//   let payment = data.payment.length === 2 ? "both" : data.payment[0];
+//   let slug = saveShopWithUniqSlug(data, id_user, order, payment);
 
   // const sql = `INSERT INTO shop (id_user, name_shop, slugify_name, order_type, payment_type) VALUES (${id_user}, '${
   //   data.shopName}', '${slugify || "neFonctionnePas_" + Math.floor(Math.random()*40) }', '${order}', '${payment}');`;
@@ -62,13 +89,14 @@ async function saveShop(data, id_user) {
   //   console.log("saveShop - err: ", err);
   //   return null;
   // }
-}
+//}
 
-async function saveShopWithUniqSlug(data, id_user, order, payment) {
+async function saveShop(data, id_user) {
   const shop = data.shopName;
-  console.log("valeur de shop l.69", shop);
-  let slug = getSlugShopName(shop);
 
+  let order = data.recover.length === 2 ? "both" : data.recover[0];
+  let payment = data.payment.length === 2 ? "both" : data.payment[0];
+  let slug = getSlugShopName(shop);
   let loop = null;
 
   do { 
@@ -78,7 +106,7 @@ async function saveShopWithUniqSlug(data, id_user, order, payment) {
     try { 
       console.log("Valeur de slug l.75", slug); 
       const [row, _] = await promisePool.query( 
-        "INSERT INTO shop (id_user, name_shop, slugify_name, order_type, payment_type) VALUES (?, ?, ?, ?, ?)", [id_user, shop, slug, order, payment]); 
+        "INSERT INTO shops (id_user, name_shop, slugify_name, order_type, payment_type) VALUES (?, ?, ?, ?, ?)", [id_user, shop, slug, order, payment]); 
       } catch (err) { 
         if (err.errno === 1062) { 
           slug += `-${i}`;
@@ -96,7 +124,7 @@ const getSlugShopName = (shop_name) => {
 }
 
 async function saveArticles(data, id_user, id_shop) {
-  let sql = `INSERT INTO article (id_user, id_shop, name_article, amount_article, description) VALUES`;
+  let sql = `INSERT INTO articles (id_user, id_shop, name_article, amount_article, description) VALUES`;
 
   for (let i = 0; i < data.length; i++) {
     let article = data[i];

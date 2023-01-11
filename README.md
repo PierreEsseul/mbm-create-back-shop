@@ -72,5 +72,21 @@ async function saveAddress(connection, data, id_shop) {
 }
 
 
+const getUserIdByMail = async (mail, connection) => {
+    try {
+        const [rows] = await connection.execute(
+            `SELECT id FROM users WHERE mail = ?`,
+            [mail]
+        );
+        if (rows.length === 0) {
+            return null;
+        } else {
+            return rows[0].id;
+        }
+    } catch (error) {
+        console.error(error);
+    }
+};
+
 
 
