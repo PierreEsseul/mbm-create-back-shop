@@ -30,40 +30,6 @@
         } i++ 
     } while (i <=1);
 
-
-
-
-async function saveUser(connection, data) {
-  const sql = "INSERT INTO user SET mail = ?";
-  const [rows] = await connection.query(sql, [data.mail]);
-  return rows.insertId;
-}
-
-async function saveShop(connection, data, id_user) {
-  const sql = "INSERT INTO shop SET id_user = ?, name_shop = ?, slugify_name = ?, order_type = ?, payment_type = ?";
-  
-  return rows.insertId;
-}
-
-async function saveArticles(connection, data, id_user, id_shop) {
-  const sql = "INSERT INTO article SET id_user = ?, id_shop = ?, name_article = ?, amount_article = ?, description = ?";
-  const [rows] = await connection.query(sql, [id_user, id_shop, data.articleName, data.amount, data.description]);
-  return rows.insertId;
-}
-
-async function saveArticles(connection, data, id_user, id_shop) {
-  const sql = "INSERT INTO article (id_user, id_shop, name_article, amount_article, description) VALUES ?";
-  const values = data.map((article) => [id_user, id_shop, article.articleName, article.amount, article.description]);
-  await connection.query(sql, [values]);
-}
-
-async function saveAddress(connection, data, id_shop) {
-  const sql = "INSERT INTO address SET id_shop = ?, address = ?, city = ?, zip_code = ?";
-  const [rows] = await connection.query(sql, [id_shop, data.address, data.city, data.zip_code]);
-  return rows.insertId;
-}
-
-
 const getUserIdByMail = async (mail, connection) => {
     try {
         const [rows] = await connection.execute(

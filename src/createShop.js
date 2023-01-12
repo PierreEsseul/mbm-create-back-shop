@@ -38,19 +38,18 @@ async function newShop(data) {
 }
 
 async function saveUser(data) {
-  const sql = `INSERT INTO users (mail) VALUES ('${data.mail}');`;
+    const sql = "INSERT INTO users SET mail = ?";
+    try {
+        const [rows] = await promisePool.query(sql, [data.mail]);
 
-  try {
-    const [rows, _] = await promisePool.query(sql);
-
-    return rows.insertId;
-  } catch (err) {
-    if (err.errno === 1062) {
-        return await getUserIdByMail(data.mail);
+        return rows.insertId;
+    } catch (err) {
+        if (err.errno === 1062) {
+            return await getUserIdByMail(data.mail);
+        }
+        // Webhook Error saveUser
+        console.log("saveUser - err: ", err);
     }
-    // Webhook Error saveUser
-    console.log("saveUser - err: ", err);
-  }
 }
 
 async function getUserIdByMail(mail) {
@@ -131,10 +130,10 @@ async function saveArticles(data, id_user, id_shop) {
 }
 
 async function saveAddress(data, id_shop) {
-    const sql = `INSERT INTO address (id_shop, street, postal_code, city, hours, phone_number) VALUES (${id_shop}, '${data.collect.address.street}', '${data.collect.address.postalCode}', '${data.collect.address.city}', '${data.collect.hours}', '${data.collect.phoneNumber}');`;
+    const sql = "INSERT INTO address SET id_shop = ?, street = ?, postal_code = ?, city = ?, hours = ?, phone_number = ?";
 
     try {
-        const [rows, _] = await promisePool.query(sql);
+        const [rows] = await promisePool.query(sql, [id_shop, data.collect.address.street, data.collect.address.postalCode, data.collect.address.city, data.collect.hours, data.collect.phoneNumber]);
         return rows.insertId;
     } catch (err) {
         // Webhook Error saveAddress
