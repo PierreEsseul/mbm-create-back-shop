@@ -1,29 +1,40 @@
 import mysql from "mysql2";
 import slugify from "slugify";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const pool = mysql.createPool({
-  host: "127.0.0.1",
-  port: "8889",
-  user: "root",
-  password: "root",
-  database: "madebyme",
+  host: process.env.HOST_MYSQL,
+  port: process.env.PORT_MYSQL,
+  user: process.env.USER_MYSQL,
+  password: process.env.PASSWORD_MYSQL,
+  database: process.env.DB_MYSQL,
 });
 
 const promisePool = pool.promise();
 
 async function newShop(data) {
-  const id_user = await saveUser(data);
-  if (!id_user) {
-    return null; //retourner une erreur pour la renvoyer au front
-  }
-  const id_shop = await saveShop(data, id_user);
-  if (!id_shop) {
-    return null;
-  }
-  const articles = await saveArticles(data.articles, id_user, id_shop);
-  const address = await saveAddress(data, id_shop);
+    const id_user = await saveUser(data);
+    if (!id_user) {
+        return null; //retourner une erreur pour la renvoyer au front
+    }
 
-  return { id_user, id_shop, articles, address };
+    const id_shop = await saveShop(data, id_user);
+    if (!id_shop) {
+        return null;
+    }
+    
+    const ret = await saveArticles(data.articles, id_user, id_shop);
+    if (!ret){
+        return null;
+    }
+
+    if (data.recover.includes("collect")) {
+        await saveAddress(data, id_shop);
+    }
+    //web book sur discords
+    // Success
+    return { id_user, id_shop };
 }
 
 async function saveUser(data) {
@@ -34,33 +45,31 @@ async function saveUser(data) {
 
     return rows.insertId;
   } catch (err) {
-    let id = null;
-    if (err.errno === 1062){
-      id = await getUserIdByMail(data.mail);
-    } else {
-      console.log("saveUser - err: ", err);
+    if (err.errno === 1062) {
+        return await getUserIdByMail(data.mail);
     }
-    return id;
+    // Webhook Error saveUser
+    console.log("saveUser - err: ", err);
   }
 }
 
-const getUserIdByMail = async (mail, promisePool) => {
-  let id = null;
-  try {
-      const [rows] = await promisePool.execute(
-          `SELECT id FROM users WHERE mail = ?`,
-          [mail]
-      );
-      if (rows.length === 0) {
-          return null;
-      } else {
-          id = rows[0].id;
-          console.log("valeur de l'id l.48 : ", id);
-          return id;
-      }
-  } catch (error) {
-      console.error("getUserIdByMail - err : ",error);
-  }
+async function getUserIdByMail(mail) {
+    try {
+        const [rows, _] = await promisePool.query(
+            `SELECT id_user FROM users WHERE mail = ?`,
+            [mail]
+        );
+
+        if (!rows || rows?.length === 0) {
+            return null;
+        }
+        return rows[0].id_user;
+
+    } catch (error) {
+        // Webhook Error getUserIdByMail
+        console.error("getUserIdByMail - err : ", error);
+        return null;
+    }
 };
 
 // recover: [ 'delivery', 'collect' ]
@@ -68,95 +77,71 @@ const getUserIdByMail = async (mail, promisePool) => {
 // payment: [ 'card', 'cash' ],
 //TODO: Penser a modifier dans le front le card par le mot cb;
 
-//TODO: Est ce qu'on supprime "saveShop" et on remplace le nom de la func "saveShopWithUniqSlug" par "saveShop"?git checkout pierre
-
-// async function saveShop(data, id_user) {
-//   console.log("Valeur de data.recover l.47 : ", data.recover);
-//   console.log("Valeur de data.recover.length l.48 : ", data.recover.length);
-//   let order = data.recover.length === 2 ? "both" : data.recover[0];
-//   console.log("Valeur const order l.50 : ", order);
-//   let payment = data.payment.length === 2 ? "both" : data.payment[0];
-//   let slug = saveShopWithUniqSlug(data, id_user, order, payment);
-
-  // const sql = `INSERT INTO shop (id_user, name_shop, slugify_name, order_type, payment_type) VALUES (${id_user}, '${
-  //   data.shopName}', '${slugify || "neFonctionnePas_" + Math.floor(Math.random()*40) }', '${order}', '${payment}');`;
-
-  // try {
-  //   const [rows, _] = await promisePool.query(sql);
-  //   console.log("rows : ", rows);
-  //   return rows.insertId;
-  // } catch (err) {
-  //   console.log("saveShop - err: ", err);
-  //   return null;
-  // }
-//}
-
 async function saveShop(data, id_user) {
-  const shop = data.shopName;
+    const shop = data.shopName;
 
-  let order = data.recover.length === 2 ? "both" : data.recover[0];
-  let payment = data.payment.length === 2 ? "both" : data.payment[0];
-  let slug = getSlugShopName(shop);
-  let loop = null;
-
-  do { 
-    loop = false;
+    let order = data.recover.length === 2 ? "both" : data.recover[0];
+    let payment = data.payment.length === 2 ? "both" : data.payment[0];
+    let slug = getSlugShopName(shop);
+    data.slug = slug;
     let i = 1;
-    console.log("Valeur de SLUG l.77 : ", slug);
-    try { 
-      console.log("Valeur de slug l.75", slug); 
-      const [row, _] = await promisePool.query( 
-        "INSERT INTO shops (id_user, name_shop, slugify_name, order_type, payment_type) VALUES (?, ?, ?, ?, ?)", [id_user, shop, slug, order, payment]); 
-      } catch (err) { 
-        if (err.errno === 1062) { 
-          slug += `-${i}`;
-          loop = true;
-        } else {
-          throw err;
+
+    do {
+        try {
+            const [rows, _] = await promisePool.query(
+                "INSERT INTO shops (id_user, name_shop, slugify_name, order_type, payment_type) VALUES (?, ?, ?, ?, ?)",
+                [id_user, shop, data.slug, order, payment]
+            );
+            return rows.insertId;
+        } catch (error) {
+            if (error.errno === 1062) {
+                data.slug = `${slug}-${i}`;
+            } else {
+                // Webhook Error saveShop
+                console.log(error);
+                return null;
+            }
         }
-        console.log("Valeur de SLUG l.87 : ", slug);
-      } i++ 
-  } while (loop);
+        i++;
+    } while (true);
 }
 
 const getSlugShopName = (shop_name) => {
-  return slugify(shop_name, { lower: true, remove: /[*+~.;,()'"!?:@]/g });
-}
+    return slugify(shop_name, { lower: true, remove: /[*+~.;,()'"!?:@]/g });
+};
 
 async function saveArticles(data, id_user, id_shop) {
-  let sql = `INSERT INTO articles (id_user, id_shop, name_article, amount_article, description) VALUES`;
+    let sql = `INSERT INTO articles (id_user, id_shop, name_article, amount_article, description) VALUES`;
 
-  for (let i = 0; i < data.length; i++) {
-    let article = data[i];
-    sql += ` (${id_user}, ${id_shop}, '${article.articleName}', '${article.amount}', '${article.description}')`;
-    sql += (data.length - 1 === i) ? ';' : ',';
-  }
+    for (let i = 0; i < data.length; i++) {
+        let article = data[i];
+        sql += ` (${id_user}, ${id_shop}, '${article.articleName}', '${article.amount}', '${article.description}')`;
+        sql += data.length - 1 === i ? ";" : ",";
+    }
 
-  try {
-    const [rows, _] = await promisePool.query(sql);
+    try {
+        const [rows, _] = await promisePool.query(sql);
 
-    return rows.insertId;
-  } catch (err) {
-    console.log("saveShop - err: ", err);
-    return null;
-  }
+        return rows.insertId;
+    } catch (err) {
+        // Webhook Error saveArticles
+        console.log("saveArticles - err: ", err);
+        return null;
+    }
 }
 
 async function saveAddress(data, id_shop) {
-  if (data.recover.includes('collect')){
     const sql = `INSERT INTO address (id_shop, street, postal_code, city, hours, phone_number) VALUES (${id_shop}, '${data.collect.address.street}', '${data.collect.address.postalCode}', '${data.collect.address.city}', '${data.collect.hours}', '${data.collect.phoneNumber}');`;
 
     try {
-      const [rows, _] = await promisePool.query(sql);
-      console.log("rows: ", rows);
-      return rows.insertId;
+        const [rows, _] = await promisePool.query(sql);
+        return rows.insertId;
     } catch (err) {
-      console.log("save - err: ", err);
-      return null;
+        // Webhook Error saveAddress
+        console.log("saveAddress - err: ", err);
+        return null;
     }
-  } else {
-    return null;
-  }
+  
 }
 
 export default newShop;

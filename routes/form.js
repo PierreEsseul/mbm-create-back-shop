@@ -16,7 +16,12 @@ router.get('/', (req, res) => {
 router.post('/', async (req, res) => {
     const ret = await newShop(req.body);
 
+    if (!ret) {
+       return res.json({ success: false, error: "Erreur enregistrement shop" });
+    }
     res.json({ success: true, body: req.body, ret: ret });
+    
+
 });
 
 

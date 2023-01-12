@@ -1,12 +1,3 @@
-
-import slugify from 'slugify';
-
-export const getSlugShopName = (shop_name) => {
-    return slugify(shop_name, { lower: true, remove: /[*+~.;,()'"!?:@]/g });
-}
-
-
-
     async saveShopWithUniqSlug(answers, id_user) {
         const shop = getObjetShop(answers);
         const slugify_name = shop.slugify_name;
@@ -24,6 +15,7 @@ export const getSlugShopName = (shop_name) => {
             }
         }
     }
+
 
     do { 
       try { 
