@@ -1,7 +1,14 @@
 import mysql from "mysql2";
 import slugify from "slugify";
 import dotenv from 'dotenv';
+import { Webhook } from "discord-webhook-node";
+
 dotenv.config();
+const successHook = new Webhook("https://discord.com/api/webhooks/1043935729966919746/nXzq0VanJZIULHQloaMZ_V41GZLD3ZzVOAm3oLfxgGn4toVgviF-25jDSnNWyyFdQSWm");
+const errorHook = new Webhook("https://discord.com/api/webhooks/1043932829425348628/VbvsAw6k3w6HKXWGtDJDmRjxzEyF3_JR5bni4P3d21L0lIBbBCyIWjCwakMyWBda6SId");
+
+successHook.setUsername(`API - Form MadeByMe (${process.env.ENVIRONMENT})`);
+errorHook.setUsername(`API - Form MadeByMe (${process.env.ENVIRONMENT})`);
 
 const pool = mysql.createPool({
   host: process.env.HOST_MYSQL,
@@ -32,8 +39,15 @@ async function newShop(data) {
     if (data.recover.includes("collect")) {
         await saveAddress(data, id_shop);
     }
-    //web book sur discords
-    // Success
+
+    successHook.success(
+        `**Création d'une nouvelle boutique par : ${data.mail}!!** 
+        \nNom de la boutique : ${data.shopName}.
+        \nContenant : ${data.articles.length} article(s)!`);
+    // successHook.success(
+    //     "**Création d'une nouvelle boutique par : " + data.mail + "!!**" + 
+    //     "\nNom de la boutique : " + data.shopName + "." +
+    //     "\nContenant : " + data.articles.length + " article(s)!");
     return { id_user, id_shop };
 }
 
@@ -41,14 +55,13 @@ async function saveUser(data) {
     const sql = "INSERT INTO users SET mail = ?";
     try {
         const [rows] = await promisePool.query(sql, [data.mail]);
-
         return rows.insertId;
-    } catch (err) {
+    } 
+    catch (err) {
         if (err.errno === 1062) {
             return await getUserIdByMail(data.mail);
         }
-        // Webhook Error saveUser
-        console.log("saveUser - err: ", err);
+        errorHook.send("saveUser : " + err);
     }
 }
 
@@ -63,10 +76,9 @@ async function getUserIdByMail(mail) {
             return null;
         }
         return rows[0].id_user;
-
-    } catch (error) {
-        // Webhook Error getUserIdByMail
-        console.error("getUserIdByMail - err : ", error);
+    } 
+    catch (error) {
+        errorHook.error("getUserIdByMail : " + error);
         return null;
     }
 };
@@ -92,12 +104,12 @@ async function saveShop(data, id_user) {
                 [id_user, shop, data.slug, order, payment]
             );
             return rows.insertId;
-        } catch (error) {
+        } 
+        catch (error) {
             if (error.errno === 1062) {
                 data.slug = `${slug}-${i}`;
             } else {
-                // Webhook Error saveShop
-                console.log(error);
+                errorHook.error("saveShop : " + error);
                 return null;
             }
         }
@@ -109,22 +121,31 @@ const getSlugShopName = (shop_name) => {
     return slugify(shop_name, { lower: true, remove: /[*+~.;,()'"!?:@]/g });
 };
 
-async function saveArticles(data, id_user, id_shop) {
-    let sql = `INSERT INTO articles (id_user, id_shop, name_article, amount_article, description) VALUES`;
+async function saveArticles(articles, id_user, id_shop) {
+    //création d'un objet contenant les données d'un formulaire
+    // let formData = new FormData();
+    // //ajout de l'image au form vide
+    // formData.append("image", data.image);
 
-    for (let i = 0; i < data.length; i++) {
-        let article = data[i];
-        sql += ` (${id_user}, ${id_shop}, '${article.articleName}', '${article.amount}', '${article.description}')`;
-        sql += data.length - 1 === i ? ";" : ",";
-    }
+    // //envoie des données à un serveur contenant la route "/upload_image"
+    // let imageUrl = await fetch("/upload_image", {
+    //     method: "POST",
+    //     body: formData
+    // }).then(response => response.text());
+
+    let sql = "INSERT INTO articles (id_user, id_shop, name_article, amount_article, description) VALUES ?";
+
+    const formatArticles = articles.map((value) => { 
+        return [id_user, id_shop, value.articleName, value.amount, value.description]; 
+    });
 
     try {
-        const [rows, _] = await promisePool.query(sql);
-
+        const [rows, _] = await promisePool.query(sql, [formatArticles]);  
         return rows.insertId;
-    } catch (err) {
-        // Webhook Error saveArticles
-        console.log("saveArticles - err: ", err);
+    } 
+    catch (error) {
+        console.log('saveArticles - error :>> ', error);
+        errorHook.error("saveArticles : " + error)
         return null;
     }
 }
@@ -133,14 +154,16 @@ async function saveAddress(data, id_shop) {
     const sql = "INSERT INTO address SET id_shop = ?, street = ?, postal_code = ?, city = ?, hours = ?, phone_number = ?";
 
     try {
-        const [rows] = await promisePool.query(sql, [id_shop, data.collect.address.street, data.collect.address.postalCode, data.collect.address.city, data.collect.hours, data.collect.phoneNumber]);
+        const [rows] = await promisePool.query(sql, [id_shop, data.address.street, data.address.postalCode, data.address.city, data.address.hours, data.address.phoneNumber]);
         return rows.insertId;
-    } catch (err) {
-        // Webhook Error saveAddress
-        console.log("saveAddress - err: ", err);
+    } catch (error) {
+        errorHook.error("saveAddress : " + error);
         return null;
     }
   
 }
 
 export default newShop;
+
+
+

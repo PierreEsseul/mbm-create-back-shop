@@ -16,6 +16,19 @@
         }
     }
 
+const sql = "INSERT INTO users SET mail = ?";
+const [rows] = await promisePool.query(sql, [data.mail]);
+
+let sql = "INSERT INTO articles SET";
+
+  for (let i = 0; i < data.length; i++) {
+      let article = data[i];
+      sql += "(id_user = ?, id_shop = ?, name_article = ?, amount_article = ?, description = ?";
+      sql += data.length - 1 === i ? ";" : ",";
+  }
+
+  try {
+      const [rows, _] = await promisePool.query(sql, [id_user, id_shop, article.articleName, article.amount, article.description]);
 
     do { 
       try { 
@@ -46,5 +59,12 @@ const getUserIdByMail = async (mail, connection) => {
     }
 };
 
+// let sql = `INSERT INTO articles (id_user, id_shop, name_article, picture_url, amount_article, description) VALUES`;
+
+    // for (let i = 0; i < data.length; i++) {
+    //     let article = data[i];
+    //     sql += ` (${id_user}, ${id_shop}, '${article.articleName}', '${imageUrl}', '${article.amount}', '${article.description}')`;
+    //     sql += data.length - 1 === i ? ";" : ",";
+    // }-
 
 
