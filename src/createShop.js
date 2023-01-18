@@ -1,7 +1,9 @@
 import mysql from "mysql2";
 import slugify from "slugify";
 import dotenv from 'dotenv';
+import FormData from 'form-data';
 import { Webhook } from "discord-webhook-node";
+
 
 dotenv.config();
 const successHook = new Webhook("https://discord.com/api/webhooks/1043935729966919746/nXzq0VanJZIULHQloaMZ_V41GZLD3ZzVOAm3oLfxgGn4toVgviF-25jDSnNWyyFdQSWm");
@@ -83,11 +85,6 @@ async function getUserIdByMail(mail) {
     }
 };
 
-// recover: [ 'delivery', 'collect' ]
-//TODO: Penser a modifier dans le front le pickup par le mot collect;
-// payment: [ 'card', 'cash' ],
-//TODO: Penser a modifier dans le front le card par le mot cb;
-
 async function saveShop(data, id_user) {
     const shop = data.shopName;
 
@@ -122,21 +119,11 @@ const getSlugShopName = (shop_name) => {
 };
 
 async function saveArticles(articles, id_user, id_shop) {
-    //création d'un objet contenant les données d'un formulaire
-    // let formData = new FormData();
-    // //ajout de l'image au form vide
-    // formData.append("image", data.image);
+    let sql = "INSERT INTO articles (id_user, id_shop, name_article, picture_url, amount_article, description) VALUES ?";
 
-    // //envoie des données à un serveur contenant la route "/upload_image"
-    // let imageUrl = await fetch("/upload_image", {
-    //     method: "POST",
-    //     body: formData
-    // }).then(response => response.text());
-
-    let sql = "INSERT INTO articles (id_user, id_shop, name_article, amount_article, description) VALUES ?";
-
+    console.log('Value articles in createShop l.124 : ', articles);
     const formatArticles = articles.map((value) => { 
-        return [id_user, id_shop, value.articleName, value.amount, value.description]; 
+        return [id_user, id_shop, value.articleName, value.image, value.amount, value.description]; 
     });
 
     try {
