@@ -1,6 +1,7 @@
 import express from 'express';
 
 import newShop from '../src/createShop.js';
+import saveImgS3 from '../src/saveImgS3.js';
 
 
 const router = express.Router();
@@ -13,7 +14,7 @@ router.get('/', (req, res) => {
 
 
 router.post('/', async (req, res) => {
-    console.log('Value req.body in form.js l.18 : ',req.body);
+    console.log('req.body in form.js', req.body);
     const ret = await newShop(req.body);
     
     if (!ret) {
@@ -23,16 +24,12 @@ router.post('/', async (req, res) => {
 });
 
 router.post('/upload-image', async (req, res) => {
-    console.log('Value de req.body in form l.27 : ', req.body.image);
-    // const ret = await newShop(req.body.image);
-    const ret = "ok";
-
-    // s3 enregistrement
-
-    if (!ret) {
-        return res.json({ success: false, error: "Erreur enregistrement image" });
-     }
-     res.json({ success: true, body: req.body, urlImage: "retour s3" });
+    const ret = await saveImgS3(req);
+    if (ret) {
+    // if (!ret) {
+       return res.json({ success: false, error: "Erreur enregistrement image dans AWS_S3" });
+    }
+    res.json({ success: true, body: req.body, ret: ret, urlImage: 'testURLimage'  });    
 });
 
 
