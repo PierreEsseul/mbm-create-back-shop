@@ -14,12 +14,14 @@ const s3 = new S3Client({
 });
 
 
-const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-        cb(null, true)
-    } else {
-        cb(null, false)
+const fileTypes = /jpeg|JPEG|jpg|JPG|png|PNG|gif|GIF|webp|WEBP/;
+const fileFilter = function(req, file, cb) {
+    if (fileTypes.test(file.mimetype)) {
+        return cb(null, true)
     }
+    req.errorMessage = `Wrong extension type (${file.mimetype})`;
+    req.errorErrno = 10;
+    cb(null, false)
 }
 
 const upload = multer({
@@ -31,11 +33,10 @@ const upload = multer({
             cb(null, { fieldName: file.fieldname });
         },
         key: function (req, file, cb) {
-            console.log('storage - key', file);
-            cb(null, file.originalname);  //use Date.now() for unique file keys
-        }
+            cb(null, `${Date.now()}-${file.originalname}`);
+        },
     }),
-    // filter: fileFilter
+    fileFilter: fileFilter
 });
 
 

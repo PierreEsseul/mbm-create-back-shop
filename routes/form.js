@@ -27,8 +27,8 @@ router.post('/upload-image', async (req, res) => {
     console.log('\n\n/upload-image', { file: req.file })
 
     uploadFunc(req, res, (err) => {
-        if (!err) {
-            return res.json({ success: false, error: "Erreur enregistrement image s3", urlImage: null });
+        if (err || !req.file) {
+            return res.json({ success: false, error: req.errorMessage || "Erreur enregistrement image s3", errno: req.errorErrno,  urlImage: null });
         }
         res.json({ success: true, urlImage: req.file.location || null });
     })
