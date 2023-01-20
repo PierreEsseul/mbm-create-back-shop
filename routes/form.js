@@ -1,6 +1,6 @@
 import express from 'express';
 
-import upload from '../src/upload.js'
+import middlewareUploadSingleFile from '../src/upload.js'
 import newShop from '../src/createShop.js';
 
 const router = express.Router();
@@ -22,16 +22,11 @@ router.post('/', async (req, res) => {
     res.json({ success: true, body: req.body, ret: ret });    
 });
 
-const uploadFunc = upload.single('file'); // formData.append("file", file);
-router.post('/upload-image', async (req, res) => {
-    console.log('\n\n/upload-image', { file: req.file })
 
-    uploadFunc(req, res, (err) => {
-        if (err || !req.file) {
-            return res.json({ success: false, error: req.errorMessage || "Erreur enregistrement image s3", errno: req.errorErrno,  urlImage: null });
-        }
-        res.json({ success: true, urlImage: req.file.location || null });
-    })
+router.post('/upload-image', middlewareUploadSingleFile, async (req, res) => {
+    console.log('\n\n/upload-image', { fileLocation: req.file?.location })
+    
+    res.json({ success: true, urlImage: req.file.location || null });
 });
 
 

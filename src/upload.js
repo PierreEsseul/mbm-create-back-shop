@@ -40,5 +40,15 @@ const upload = multer({
 });
 
 
+const middlewareUploadSingleFile = async (req, res, next) => {
+    // FRONT: formData.append("file", file);
+    upload.single('file')(req, res, (err) => {
+        if (err || !req.file) {
+            return res.json({ success: false, error: req.errorMessage || "Erreur enregistrement image s3", errno: req.errorErrno,  urlImage: null });
+        }
+        next();
+    })
+}
 
-export default upload;
+
+export default middlewareUploadSingleFile;
