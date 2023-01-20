@@ -1,7 +1,7 @@
 import express from 'express';
 
+import upload from '../src/upload.js'
 import newShop from '../src/createShop.js';
-
 
 const router = express.Router();
 
@@ -22,17 +22,16 @@ router.post('/', async (req, res) => {
     res.json({ success: true, body: req.body, ret: ret });    
 });
 
+const uploadFunc = upload.single('file'); // formData.append("file", file);
 router.post('/upload-image', async (req, res) => {
-    console.log('Value de req.body in form l.27 : ', req.body.image);
-    // const ret = await newShop(req.body.image);
-    const ret = "ok";
+    console.log('\n\n/upload-image', { file: req.file })
 
-    // s3 enregistrement
-
-    if (!ret) {
-        return res.json({ success: false, error: "Erreur enregistrement image" });
-     }
-     res.json({ success: true, body: req.body, urlImage: "retour s3" });
+    uploadFunc(req, res, (err) => {
+        if (!err) {
+            return res.json({ success: false, error: "Erreur enregistrement image s3", urlImage: null });
+        }
+        res.json({ success: true, urlImage: req.file.location || null });
+    })
 });
 
 
