@@ -22,6 +22,7 @@ const pool = mysql.createPool({
 const promisePool = pool.promise();
 
 async function newShop(data) {
+    console.log('data :>> ', data);
     const id_user = await saveUser(data);
     if (!id_user) {
         return null; //retourner une erreur pour la renvoyer au front
@@ -118,6 +119,7 @@ const getSlugShopName = (shop_name) => {
 };
 
 async function saveArticles(articles, id_user, id_shop) {
+    console.log('articles :>> ', articles);
     let sql = "INSERT INTO articles (id_user, id_shop, name_article, picture_url, amount_article, description) VALUES ?";
 
     console.log('Value articles in createShop l.124 : ', articles);

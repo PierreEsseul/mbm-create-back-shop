@@ -6,9 +6,9 @@ dotenv.config();
 import form from './routes/form.js';
 
 const app = express()
-app.use(cors());
-app.use(express.json());
 
+app.use(express.json());
+app.use(cors()); 
 
 // Initialize routes middleware
 app.use('/api/form', form);

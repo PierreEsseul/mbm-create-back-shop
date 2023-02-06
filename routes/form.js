@@ -13,6 +13,7 @@ router.get('/', (req, res) => {
 
 
 router.post('/', async (req, res) => {
+    console.log("test")
     const ret = await newShop(req.body);
     
     if (!ret) {
