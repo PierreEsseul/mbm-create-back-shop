@@ -1,7 +1,6 @@
 import mysql from "mysql2";
 import slugify from "slugify";
 import dotenv from 'dotenv';
-import FormData from 'form-data';
 import { Webhook } from "discord-webhook-node";
 
 
