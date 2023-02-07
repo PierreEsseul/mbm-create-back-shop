@@ -125,6 +125,8 @@ async function saveArticles(articles, id_user, id_shop) {
         return [id_user, id_shop, value.articleName, value.image, value.amount, value.description]; 
     });
 
+    console.log("Value formatArticles : ", formatArticles);
+
     try {
         const [rows, _] = await promisePool.query(sql, [formatArticles]);  
         return rows.insertId;
