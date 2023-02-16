@@ -119,13 +119,14 @@ const getSlugShopName = (shop_name) => {
 };
 
 async function saveArticles(articles, id_user, id_shop) {
-    console.log('articles :>> ', articles);
-    let sql = "INSERT INTO articles (id_user, id_shop, name_article, picture_url, amount_article, description) VALUES ?";
+    let sql = "INSERT INTO articles (id_user, id_shop, name_article, picture_url, price, description) VALUES ?";
 
     console.log('Value articles in createShop l.124 : ', articles);
     const formatArticles = articles.map((value) => { 
         return [id_user, id_shop, value.articleName, value.image, value.amount, value.description]; 
     });
+
+    console.log("Value formatArticles : ", formatArticles);
 
     try {
         const [rows, _] = await promisePool.query(sql, [formatArticles]);  
