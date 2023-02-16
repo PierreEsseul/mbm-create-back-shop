@@ -18,7 +18,8 @@ router.post('/', async (req, res) => {
     if (!ret) {
        return res.json({ success: false, error: "Erreur enregistrement shop" });
     }
-    res.json({ success: true, body: req.body, ret: ret });    
+    res.json({ success: true, body: req.body, slug: req.body.slug, ret: ret }); 
+    console.log(res.json());   
 });
 
 
