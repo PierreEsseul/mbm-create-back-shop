@@ -11,9 +11,7 @@ router.get('/', (req, res) => {
     res.json({ success: true });
 });
 
-
 router.post('/', async (req, res) => {
-    console.log("test")
     const ret = await newShop(req.body);
     
     if (!ret) {
@@ -23,11 +21,10 @@ router.post('/', async (req, res) => {
     console.log(res.json());   
 });
 
-
 router.post('/upload-image', middlewareUploadSingleFile, async (req, res) => {
     
     res.json({ success: true, urlImage: req.file.location || null });
 });
 
-
 export default router;
+
